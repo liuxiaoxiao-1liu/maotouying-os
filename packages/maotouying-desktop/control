@@ -1,0 +1,53 @@
+Package: maotouying-desktop
+Version: 0.1.0
+Section: metapackages
+Priority: optional
+Architecture: all
+Maintainer: Maotouying OS Team
+Description: 猫头鹰 OS 桌面元包
+ 一键安装猫头鹰 OS 的完整桌面环境，包含:
+  - niri 可滚动平铺 Wayland 合成器
+  - dms 桌面面板
+  - fuzzel 应用启动器
+  - kitty 终端模拟器
+  - fcitx5 中文输入法
+  - PipeWire 音频系统
+  - NetworkManager 网络管理
+  - Thunar 文件管理器
+  - Firefox 浏览器
+  - Breeze 主题与图标
+
+Depends:
+ niri,
+ dms,
+ quickshell,
+ fuzzel,
+ kitty,
+ fcitx5,
+ fcitx5-chinese-addons,
+ fcitx5-frontend-gtk3,
+ fcitx5-frontend-gtk4,
+ fcitx5-frontend-qt5,
+ pipewire,
+ wireplumber,
+ pipewire-pulse,
+ network-manager,
+ iwd,
+ policykit-1,
+ xdg-desktop-portal,
+ xdg-desktop-portal-gnome,
+ xdg-desktop-portal-gtk,
+ thunar,
+ firefox,
+ breeze,
+ breeze-icon-theme,
+ breeze-cursor-theme,
+ fonts-noto,
+ fonts-noto-cjk,
+ fonts-adwaita,
+ wl-clipboard,
+ libnotify-bin,
+ x11-utils,
+ fzf,
+ vim,
+ maotouying-config

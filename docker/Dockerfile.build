@@ -1,0 +1,54 @@
+# 猫头鹰 OS 构建容器
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+ENV RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+
+# 1: apt → 清华
+RUN sed -i 's|//archive.ubuntu.com|//mirrors.tuna.tsinghua.edu.cn|g' \
+        /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true; \
+    sed -i 's|//ports.ubuntu.com|//mirrors.tuna.tsinghua.edu.cn|g' \
+        /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true; \
+    sed -i 's|//security.ubuntu.com|//mirrors.tuna.tsinghua.edu.cn|g' \
+        /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+
+# 2: 系统依赖
+RUN apt-get update && apt-get install -y \
+    debootstrap dpkg-dev devscripts build-essential \
+    fakeroot git curl wget ca-certificates \
+    clang cmake pkg-config python3 \
+    libwayland-dev libpipewire-0.3-dev libgbm-dev \
+    libinput-dev libxkbcommon-dev libpixman-1-dev \
+    libpango1.0-dev libdisplay-info-dev libseat-dev \
+    libcairo2-dev libglib2.0-dev libudev-dev libdrm-dev \
+    libxcb1-dev libxkbcommon-x11-dev \
+    qt6-base-dev qt6-declarative-dev \
+    qt6-tools-dev qt6-tools-dev-tools \
+    libqt6svg6-dev libqt6opengl6-dev wayland-protocols \
+    grub-efi-amd64-signed grub-pc-bin mtools xorriso \
+    isolinux squashfs-tools dosfstools \
+    vim sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3: Wget → 强制 IPv4（容器内 IPv6 导致 debootstrap 失败）
+RUN echo 'prefer-family = IPv4' >> /etc/wgetrc
+
+# 4: Rust → 清华镜像
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --default-toolchain stable --profile minimal
+
+# 4: Git → 关闭 SSL 验证（国内网络环境必须）
+RUN git config --global http.sslVerify false
+
+# 5: Cargo → 清华 crates.io 镜像 + git 走 CLI
+RUN mkdir -p $CARGO_HOME && \
+    printf '[source.crates-io]\nreplace-with = "tuna"\n\n' > $CARGO_HOME/config.toml && \
+    printf '[source.tuna]\nregistry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"\n\n' >> $CARGO_HOME/config.toml && \
+    printf '[net]\ngit-fetch-with-cli = true\n' >> $CARGO_HOME/config.toml
+
+WORKDIR /build
+CMD ["/bin/bash"]
