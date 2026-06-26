@@ -47,13 +47,21 @@ rm -f ./live/filesystem.squashfs
 mksquashfs "$ROOTFS" "$ISODIR/live/filesystem.squashfs" \
     -comp zstd -Xcompression-level 3 -noappend
 
-# 从原 ISO 拷贝启动文件
-cp ./live/vmlinuz "$ISODIR/live/" 2>/dev/null
-cp ./live/initrd.img "$ISODIR/live/" 2>/dev/null
+# 从 squashfs 里提取 kernel + initrd
+KERNEL=$(find "$ROOTFS/boot" -name "vmlinuz-*" 2>/dev/null | head -1)
+INITRD=$(find "$ROOTFS/boot" -name "initrd*" 2>/dev/null | head -1)
+if [ -n "$KERNEL" ]; then
+    cp "$KERNEL" "$ISODIR/live/vmlinuz" && echo "  vmlinuz: $(ls -lh $ISODIR/live/vmlinuz | awk '{print $5}')"
+fi
+if [ -n "$INITRD" ]; then
+    cp "$INITRD" "$ISODIR/live/initrd.img" && echo "  initrd: $(ls -lh $ISODIR/live/initrd.img | awk '{print $5}')"
+fi
+
+# 拷贝启动文件
 cp -r ./boot/ "$ISODIR/" 2>/dev/null
-cp -r ./efi/ "$ISODIR/" 2>/dev/null
-cp ./boot.catalog "$ISODIR/" 2>/dev/null
-cp ./efi.img "$ISODIR/" 2>/dev/null
+cp -r ./efi/ "$ISODIR/" 2>/dev/null || true
+cp ./boot.catalog "$ISODIR/" 2>/dev/null || true
+cp ./efi.img "$ISODIR/" 2>/dev/null || true
 
 echo "==> [5/5] 打包新 ISO..."
 rm -f "$OUTDIR/maotouying-os-0.1.0-amd64.iso"

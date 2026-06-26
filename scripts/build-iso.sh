@@ -52,7 +52,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
     linux-image-generic initramfs-tools \
     systemd systemd-sysv grub-efi-amd64 grub-pc-bin \
-    network-manager iwd ubuntu-standard
+    network-manager iwd bluez bluez-tools ubuntu-standard
 
 apt-get install -y --no-install-recommends \
     qt6-wayland qml6-module-qtquick \
@@ -65,23 +65,14 @@ apt-get install -y --no-install-recommends \
     xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome \
     policykit-1 accountsservice
 
-# Firefox 从 Mozilla 官方 .deb 源安装
-apt-get install -y --no-install-recommends software-properties-common
-add-apt-repository -y ppa:mozillateam/ppa 2>&1 | tail -1
-cat > /etc/apt/preferences.d/mozilla-firefox << MOZPIN
-Package: firefox
-Pin: release o=LP-PPA-mozillateam
-Pin-Priority: 1001
-MOZPIN
-apt-get update -qq
-
 apt-get install -y --no-install-recommends \
     fuzzel kitty fcitx5 fcitx5-chinese-addons \
     fcitx5-frontend-gtk3 fcitx5-frontend-gtk4 fcitx5-frontend-qt5 \
-    thunar xwayland fonts-cantarell firefox \
+    thunar \
     breeze breeze-icon-theme breeze-cursor-theme \
     fonts-noto fonts-noto-cjk \
-    wl-clipboard libnotify-bin x11-utils fzf vim
+    wl-clipboard libnotify-bin x11-utils fzf vim \
+	    slurp pavucontrol fcitx5-config-qt fish cliphist
 
 locale-gen zh_CN.UTF-8 en_US.UTF-8
 update-locale LANG=zh_CN.UTF-8
@@ -125,7 +116,7 @@ cat > /etc/systemd/system/getty@tty1.service.d/override.conf << 'AUTOLOGIN'
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
 AUTOLOGIN
-systemctl enable NetworkManager iwd
+systemctl enable NetworkManager iwd bluetooth
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 INNER
@@ -168,7 +159,18 @@ INITRD=$(ls "$ROOTFS/boot/initrd.img-"* 2>/dev/null | head -1)
 mksquashfs "$ROOTFS" "$ISODIR/live/filesystem.squashfs" \
     -comp zstd -Xcompression-level 3 -noappend
 
+# CJK 字体
+mkdir -p "$ISODIR/boot/grub/fonts"
+if [ -f "$OUTDIR/cjk-font.pf2" ]; then
+	cp "$OUTDIR/cjk-font.pf2" "$ISODIR/boot/grub/fonts/unicode.pf2"
+fi
+
 cat > "$ISODIR/boot/grub/grub.cfg" << 'GRUB'
+if [ -f /boot/grub/fonts/unicode.pf2 ]; then
+	loadfont /boot/grub/fonts/unicode.pf2
+fi
+set gfxmode=auto
+terminal_output gfxterm
 set timeout=5
 set default=0
 menuentry "猫头鹰 OS Live" { linux /live/vmlinuz boot=live quiet splash; initrd /live/initrd.img; }

@@ -28,7 +28,8 @@ qemu-system-x86_64 -m 4G -enable-kvm -cdrom maotouying-os-0.1.0-amd64.iso -boot 
 | 终端 | kitty |
 | 输入法 | fcitx5 |
 | 文件管理 | thunar |
-| 浏览器 | Firefox |
+| 音频 | pipewire + wireplumber |
+| 蓝牙 | bluez |
 
 Mod + D 启动应用，Mod + H/L 滚动工作区。
 
