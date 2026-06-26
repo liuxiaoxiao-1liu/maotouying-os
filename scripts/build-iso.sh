@@ -85,29 +85,46 @@ apt-get install -y --no-install-recommends \
 
 locale-gen zh_CN.UTF-8 en_US.UTF-8
 update-locale LANG=zh_CN.UTF-8
-# 首次启动时交互式创建用户
+# 首次启动设置：root 自动登录 tty1，设置完用户后恢复
+echo 'root:maotouying' | chpasswd
 cat > /usr/local/sbin/maotouying-setup << 'SETUP'
 #!/bin/bash
 echo "===================================="
 echo "  猫头鹰 OS - 首次设置"
 echo "===================================="
-read -p "用户名: " USERNAME
+echo ""
+read -p "  用户名: " USERNAME
 useradd -m -s /bin/bash "$USERNAME"
 passwd "$USERNAME"
 usermod -aG sudo,video,audio,input "$USERNAME"
 cp -r /etc/skel/. "$(eval echo ~$USERNAME)/"
 chown -R "$USERNAME:$USERNAME" "$(eval echo ~$USERNAME)/"
-echo "设置完成。用 $USERNAME 登录后运行 niri-session 启动桌面。"
+echo ""
+echo "  设置完成！用 $USERNAME 登录，运行 niri-session 启动桌面。"
+echo ""
+touch /etc/maotouying-done
+rm -f /etc/systemd/system/getty@tty1.service.d/override.conf
+systemctl daemon-reload
 SETUP
 chmod +x /usr/local/sbin/maotouying-setup
 
-# 首次登录 tty1 时自动运行设置
-cat >> /etc/profile << 'PROFILE'
-if [ "$(tty)" = "/dev/tty1" ] && [ ! -f /etc/maotouying-done ]; then
+# root 的 .bash_profile：首次自动运行设置，之后正常登录
+cat > /root/.bash_profile << 'ROOTPROF'
+if [ ! -f /etc/maotouying-done ]; then
     /usr/local/sbin/maotouying-setup
-    sudo touch /etc/maotouying-done
+else
+    echo "首次设置已完成，请用你的用户名登录。"
+    exit 1
 fi
-PROFILE
+ROOTPROF
+
+# 首次启动 tty1 自动以 root 登录
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/override.conf << 'AUTOLOGIN'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+AUTOLOGIN
 systemctl enable NetworkManager iwd
 apt-get clean
 rm -rf /var/lib/apt/lists/*
