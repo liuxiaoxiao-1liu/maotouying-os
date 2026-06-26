@@ -16,7 +16,7 @@ sudo dd if=maotouying-os-0.1.0-amd64.iso of=/dev/sdX bs=4M status=progress
 qemu-system-x86_64 -m 4G -enable-kvm -cdrom maotouying-os-0.1.0-amd64.iso -boot d
 ```
 
-默认用户 `maotouying`，密码 `maotouying`。登录后运行 `niri-session` 启动桌面。
+首次启动会提示设置用户名和密码。登录后运行 `niri-session` 启动桌面。
 
 ## 桌面
 
