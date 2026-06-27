@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>操作系统 · 思维导图</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font: 14px/1.5 "Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+    background: #0d1117; color: #c9d1d9;
+    overflow: hidden; height: 100vh; width: 100vw;
+  }
+
+  /* ===== 工具栏 ===== */
+  .toolbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: #161b22; border-bottom: 1px solid #30363d;
+    padding: 8px 16px; display: flex; gap: 10px; align-items: center;
+  }
+  .toolbar button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: .15s;
+  }
+  .toolbar button:hover { background: #30363d; }
+  .toolbar .sep { flex: 1; }
+  .toolbar .hint { color: #8b949e; font-size: 12px; }
+
+  /* ===== 画布 ===== */
+  #canvas {
+    position: absolute; top: 42px; left: 0; right: 0; bottom: 0;
+    cursor: grab; transform-origin: 0 0;
+  }
+  #canvas:active { cursor: grabbing; }
+  #canvas.dragging { cursor: grabbing; }
+
+  /* ===== 节点 ===== */
+  .node {
+    position: absolute; white-space: nowrap;
+    user-select: none; pointer-events: auto;
+    transition: transform .2s;
+  }
+  .node:hover { z-index: 10; }
+
+  /* 中心节点 */
+  .node-center {
+    padding: 16px 28px; border-radius: 50px;
+    font-size: 1.5em; font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: #fff; box-shadow: 0 0 40px rgba(245,87,108,.4);
+    text-align: center;
+  }
+
+  /* 一级分支 */
+  .node-l1 {
+    padding: 7px 16px; border-radius: 20px;
+    font-size: .95em; font-weight: 700;
+    cursor: pointer;
+  }
+  .node-l1.collapsed + .children { display: none; }
+
+  /* 二级子节点 */
+  .node-l2 {
+    padding: 4px 12px; border-radius: 12px;
+    font-size: .8em; font-weight: 500;
+  }
+  .node-l2.key { font-weight: 700; }
+
+  /* 三级 - 公式/要点 */
+  .node-l3 {
+    padding: 3px 10px; border-radius: 10px;
+    font-size: .72em; opacity: .85;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .node-l3.formula {
+    font-family: "JetBrains Mono","Consolas",monospace;
+    background: rgba(255,169,64,.1); border-color: rgba(255,169,64,.3);
+    color: #ffa940;
+  }
+
+  /* 颜色主题 */
+  .c1 { background: #1a3a5c; border: 2px solid #2980b9; color: #58a6ff; }   /* 概述 */
+  .c2 { background: #1a2e1a; border: 2px solid #2d8a4e; color: #3fb950; }   /* 进程 */
+  .c3 { background: #2e1a1a; border: 2px solid #c93c3c; color: #f85149; }   /* 调度 */
+  .c4 { background: #2e281a; border: 2px solid #d29922; color: #e2b93b; }   /* PV */
+  .c5 { background: #1a1a2e; border: 2px solid #8e44ad; color: #bc8cff; }   /* 死锁 */
+  .c6 { background: #1a2e2e; border: 2px solid #0a9; color: #3fb9a0; }      /* 内存 */
+  .c7 { background: #2e1a2e; border: 2px solid #e0559a; color: #f778ba; }   /* 置换 */
+  .c8 { background: #1a201a; border: 2px solid #6a9; color: #7ee787; }      /* 磁盘 */
+  .c9 { background: #201a10; border: 2px solid #b89; color: #d4a574; }      /* 文件 */
+  .c10{ background: #102020; border: 2px solid #5af; color: #79c0ff; }      /* I/O */
+
+  /* ===== SVG 连线层 ===== */
+  #lines {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; pointer-events: none; z-index: 0;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 768px) {
+    .node-center { font-size: 1.1em; padding: 12px 20px; }
+    .node-l1 { font-size: .8em; padding: 5px 12px; }
+    .node-l2 { font-size: .7em; }
+    .node-l3 { font-size: .65em; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="fitScreen()" title="重置视图">🔍 适应屏幕</button>
+  <button onclick="expandAll()">📂 全部展开</button>
+  <button onclick="collapseAll()">📁 全部折叠</button>
+  <span class="sep"></span>
+  <span class="hint">🖱️ 拖拽平移 · 滚轮缩放 · 点击节点展开/折叠</span>
+</div>
+
+<div id="canvas">
+  <svg id="lines"></svg>
+  <!-- 节点由 JS 动态生成 -->
+</div>
+
+<script>
+// ==================== 思维导图数据 ====================
+const data = {
+  id: 'root', label: '🖥️ 操作系统', type: 'center',
+  children: [
+
+    // ====== 1. 概述 ======
+    { id: 's1', label: '① OS 概述', cls: 'c1',
+      children: [
+        { id: 's1a', label: '四大特征', cls: 'c1', key: true,
+          children: [
+            { label: '并发 ≠ 并行', cls: 'c1' },
+            { label: '共享（互斥/同时）', cls: 'c1' },
+            { label: '虚拟（虚拟内存）', cls: 'c1' },
+            { label: '异步（走走停停）', cls: 'c1' },
+          ]
+        },
+        { id: 's1b', label: '发展史', cls: 'c1',
+          children: [
+            { label: '手工 → 批处理 → 分时', cls: 'c1' },
+            { label: '→ 实时 → 网络', cls: 'c1' },
+          ]
+        },
+        { id: 's1c', label: '系统调用', cls: 'c1',
+          children: [
+            { label: 'int 0x80 / syscall', cls: 'c1', formula: true },
+            { label: '用户态 → 内核态', cls: 'c1', key: true },
+          ]
+        },
+      ]
+    },
+
+    // ====== 2. 进程 ======
+    { id: 's2', label: '② 进程管理', cls: 'c2',
+      children: [
+        { id: 's2a', label: '进程 = 程序+数据+PCB', cls: 'c2', key: true,
+          children: [
+            { label: 'PCB：PID、寄存器、内存限制', cls: 'c2' },
+          ]
+        },
+        { id: 's2b', label: '进程 vs 线程', cls: 'c2', key: true,
+          children: [
+            { label: '进程=工厂 | 线程=工人', cls: 'c2' },
+            { label: '线程共享进程资源', cls: 'c2' },
+          ]
+        },
+        { id: 's2c', label: '五状态模型', cls: 'c2',
+          children: [
+            { label: '创建 → 就绪 → 运行 → 终止', cls: 'c2', key: true },
+            { label: '运行 ⇄ 阻塞（等 I/O）', cls: 'c2' },
+          ]
+        },
+        { id: 's2d', label: 'IPC 进程间通信', cls: 'c2',
+          children: [
+            { label: '管道 pipe', cls: 'c2' },
+            { label: '消息队列', cls: 'c2' },
+            { label: '共享内存（最快）', cls: 'c2', key: true },
+            { label: '信号 signal', cls: 'c2' },
+          ]
+        },
+        { id: 's2e', label: '临界区准则', cls: 'c2',
+          children: [
+            { label: '空闲让进', cls: 'c2' },
+            { label: '忙则等待', cls: 'c2' },
+            { label: '有限等待', cls: 'c2' },
+            { label: '让权等待', cls: 'c2', key: true },
+          ]
+        },
+      ]
+    },
+
+    // ====== 3. CPU 调度 ======
+    { id: 's3', label: '③ CPU 调度', cls: 'c3',
+      children: [
+        { id: 's3a', label: 'FCFS 先来先服务', cls: 'c3',
+          children: [ { label: '非抢占，长堵短', cls: 'c3' } ]
+        },
+        { id: 's3b', label: 'SJF 短作业优先', cls: 'c3',
+          children: [ { label: '平均等待最少', cls: 'c3', key: true }, { label: '长作业可能饿死', cls: 'c3' } ]
+        },
+        { id: 's3c', label: 'HRRN 高响应比 ★', cls: 'c3',
+          children: [
+            { label: '响应比=(等待+服务)/服务', cls: 'c3', formula: true, key: true },
+            { label: '兼顾长短，折中方案', cls: 'c3' },
+          ]
+        },
+        { id: 's3d', label: 'RR 时间片轮转', cls: 'c3',
+          children: [ { label: '时间片 q：太小=频繁切换', cls: 'c3' }, { label: 'q 太大→FCFS', cls: 'c3' } ]
+        },
+        { id: 's3e', label: '多级反馈队列 ★★', cls: 'c3',
+          children: [
+            { label: 'N 级队列，优先从高到低', cls: 'c3', key: true },
+            { label: '高级时间片短，没跑完降级', cls: 'c3' },
+            { label: '最后一级用 FCFS', cls: 'c3' },
+          ]
+        },
+        { id: 's3f', label: '公式', cls: 'c3',
+          children: [
+            { label: '周转 = 完成 − 到达', cls: 'c3', formula: true },
+            { label: '带权 = 周转 ÷ 服务', cls: 'c3', formula: true },
+          ]
+        },
+      ]
+    },
+
+    // ====== 4. PV 操作 ======
+    { id: 's4', label: '④ PV 操作 ⭐答题', cls: 'c4',
+      children: [
+        { id: 's4a', label: '信号量 Semaphore', cls: 'c4',
+          children: [
+            { label: 'P(S)：S−1，S<0 阻塞', cls: 'c4', key: true },
+            { label: 'V(S)：S+1，S≤0 唤醒', cls: 'c4', key: true },
+          ]
+        },
+        { id: 's4b', label: '生产者-消费者 ★★', cls: 'c4',
+          children: [
+            { label: '⚠️ P(empty) 在 P(mutex) 前', cls: 'c4', key: true },
+            { label: 'empty=N, full=0, mutex=1', cls: 'c4', formula: true },
+            { label: '先 P 资源再 P 锁，防死锁', cls: 'c4', key: true },
+          ]
+        },
+        { id: 's4c', label: '读者-写者 ★★', cls: 'c4',
+          children: [
+            { label: '第一个读者 P(rw) 锁写者', cls: 'c4', key: true },
+            { label: '最后一个读者 V(rw) 释放', cls: 'c4', key: true },
+            { label: '写者 P(rw) 独占', cls: 'c4' },
+          ]
+        },
+        { id: 's4d', label: '哲学家就餐 ★', cls: 'c4',
+          children: [
+            { label: '限制最多 4 人同时拿', cls: 'c4', key: true },
+            { label: '或奇偶不同顺序取筷', cls: 'c4' },
+          ]
+        },
+      ]
+    },
+
+    // ====== 5. 死锁 ======
+    { id: 's5', label: '⑤ 死锁', cls: 'c5',
+      children: [
+        { id: 's5a', label: '四必要条件（简答必背）', cls: 'c5', key: true,
+          children: [
+            { label: '① 互斥', cls: 'c5' },
+            { label: '② 请求并保持', cls: 'c5' },
+            { label: '③ 不可抢占', cls: 'c5' },
+            { label: '④ 循环等待', cls: 'c5' },
+            { label: '🧠 互请不循 → 破任一防死锁', cls: 'c5', key: true },
+          ]
+        },
+        { id: 's5b', label: '银行家算法', cls: 'c5',
+          children: [
+            { label: '分配前判断安全状态', cls: 'c5' },
+            { label: '存在安全序列=安全', cls: 'c5', key: true },
+          ]
+        },
+      ]
+    },
+
+    // ====== 6. 内存管理 ======
+    { id: 's6', label: '⑥ 内存管理', cls: 'c6',
+      children: [
+        { id: 's6a', label: '虚拟内存', cls: 'c6',
+          children: [
+            { label: '每进程"以为"独占全部', cls: 'c6', key: true },
+            { label: '物理内存 + 硬盘 swap', cls: 'c6' },
+          ]
+        },
+        { id: 's6b', label: '分页（Paging）', cls: 'c6',
+          children: [
+            { label: '页大小 4KB = 2^12', cls: 'c6', formula: true },
+            { label: '虚拟地址 = [页号|偏移]', cls: 'c6', key: true },
+          ]
+        },
+        { id: 's6c', label: '页表 = 页号→块号字典', cls: 'c6',
+          children: [
+            { label: '物理地址 = 块号×4K + 偏移', cls: 'c6', formula: true, key: true },
+          ]
+        },
+        { id: 's6d', label: 'TLB 快表（CPU缓存）', cls: 'c6',
+          children: [ { label: '缓存最近页表项，命中率 90%+', cls: 'c6' } ]
+        },
+        { id: 's6e', label: '多级页表', cls: 'c6',
+          children: [ { label: '页表本身也分页，省内存', cls: 'c6' } ]
+        },
+      ]
+    },
+
+    // ====== 7. 页面置换 ======
+    { id: 's7', label: '⑦ 页面置换', cls: 'c7',
+      children: [
+        { id: 's7a', label: '缺页中断', cls: 'c7',
+          children: [ { label: '页不在内存→从磁盘调入', cls: 'c7', key: true } ]
+        },
+        { id: 's7b', label: 'OPT 最佳', cls: 'c7',
+          children: [ { label: '淘汰将来最久才用的', cls: 'c7' }, { label: '🏆 理想但做不到', cls: 'c7' } ]
+        },
+        { id: 's7c', label: 'FIFO 先进先出', cls: 'c7',
+          children: [ { label: '有 Belady 异常！', cls: 'c7', key: true } ]
+        },
+        { id: 's7d', label: 'LRU 最近最久未用 ★', cls: 'c7',
+          children: [ { label: '淘汰过去最久没访问的', cls: 'c7', key: true } ]
+        },
+        { id: 's7e', label: 'CLOCK 时钟 ★', cls: 'c7',
+          children: [
+            { label: '近似 LRU，访问位扫描', cls: 'c7', key: true },
+            { label: 'A=0淘汰，A=1清0给机会', cls: 'c7' },
+          ]
+        },
+        { id: 's7f', label: '改进 CLOCK', cls: 'c7',
+          children: [ { label: 'A=0,M=0 → A=0,M=1 → ...', cls: 'c7' } ]
+        },
+        { id: 's7g', label: '抖动 Thrashing', cls: 'c7',
+          children: [ { label: '页太少→频繁缺页→啥也干不了', cls: 'c7', key: true } ]
+        },
+        { id: 's7h', label: '工作集', cls: 'c7',
+          children: [ { label: '进程当前需要的页面集合', cls: 'c7' } ]
+        },
+      ]
+    },
+
+    // ====== 8. 磁盘调度 ======
+    { id: 's8', label: '⑧ 磁盘调度', cls: 'c8',
+      children: [
+        { id: 's8a', label: 'FCFS 按请求顺序', cls: 'c8' },
+        { id: 's8b', label: 'SSTF 离磁头最近先去', cls: 'c8' },
+        { id: 's8c', label: 'SCAN 电梯算法 ★', cls: 'c8',
+          children: [ { label: '走到底折返，路上处理', cls: 'c8', key: true } ]
+        },
+        { id: 's8d', label: 'C-SCAN 循环扫描 ★', cls: 'c8',
+          children: [ { label: '单向处理，到底跳回起点', cls: 'c8', key: true } ]
+        },
+        { id: 's8e', label: '考点', cls: 'c8',
+          children: [ { label: '画轨迹 + 算寻道总长度', cls: 'c8', formula: true } ]
+        },
+      ]
+    },
+
+    // ====== 9. 文件系统 ======
+    { id: 's9', label: '⑨ 文件系统', cls: 'c9',
+      children: [
+        { id: 's9a', label: 'inode（身份证）', cls: 'c9', key: true,
+          children: [ { label: '存大小/位置/权限，不存名', cls: 'c9' } ]
+        },
+        { id: 's9b', label: '目录 = 文件名→inode 表', cls: 'c9', key: true },
+        { id: 's9c', label: '硬链接 vs 软链接', cls: 'c9',
+          children: [
+            { label: '硬：同 inode，删原不影响', cls: 'c9', key: true },
+            { label: '软：存路径，原删即失效', cls: 'c9' },
+            { label: '硬不能跨文件系统', cls: 'c9', key: true },
+          ]
+        },
+        { id: 's9d', label: '分配方式', cls: 'c9',
+          children: [
+            { label: '连续（快但有碎片）', cls: 'c9' },
+            { label: '链接（无碎片但慢）', cls: 'c9' },
+            { label: '索引 ★（Unix/Linux用）', cls: 'c9', key: true },
+          ]
+        },
+        { id: 's9e', label: '常见 FS', cls: 'c9',
+          children: [
+            { label: 'ext4', cls: 'c9' },
+            { label: 'btrfs（快照/压缩）', cls: 'c9' },
+            { label: 'XFS / NTFS / FAT32', cls: 'c9' },
+          ]
+        },
+      ]
+    },
+
+    // ====== 10. I/O ======
+    { id: 's10', label: '⑩ I/O 管理', cls: 'c10',
+      children: [
+        { id: 's10a', label: '控制方式', cls: 'c10',
+          children: [
+            { label: '轮询→中断→DMA→通道', cls: 'c10', key: true },
+            { label: 'DMA：自己搬数据，CPU 不管', cls: 'c10', key: true },
+          ]
+        },
+        { id: 's10b', label: '缓冲', cls: 'c10',
+          children: [
+            { label: '单→双→环形（生产者消费者）', cls: 'c10' },
+          ]
+        },
+        { id: 's10c', label: 'SPOOLing 假脱机', cls: 'c10',
+          children: [ { label: '多用户"同时"用打印机', cls: 'c10' } ]
+        },
+      ]
+    },
+  ]
+};
+
+// ==================== 布局引擎 ====================
+const canvas = document.getElementById('canvas');
+const svg = document.getElementById('lines');
+let nodes = [];
+let scale = 1, offsetX = 0, offsetY = 0;
+let collapsed = new Set();
+
+// 布局参数
+const L1_RADIUS = 220;      // 一级节点到中心距离
+const L2_GAP_X = 180;       // 二级水平间距
+const L2_GAP_Y = 28;        // 二级垂直间距
+
+function buildLayout(root) {
+  let allNodes = [];
+
+  // 中心
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2 + 200;
+
+  allNodes.push({ ...root, x: cx, y: cy, level: 0 });
+
+  const n = root.children.length;
+  const angleStep = (2 * Math.PI) / n;
+  // 起始角度偏移使第一个节点在顶部偏右
+  const startAngle = -Math.PI / 2;
+
+  root.children.forEach((ch, i) => {
+    const angle = startAngle + i * angleStep;
+    const l1x = cx + L1_RADIUS * Math.cos(angle);
+    const l1y = cy + L1_RADIUS * Math.sin(angle);
+
+    allNodes.push({ ...ch, x: l1x, y: l1y, level: 1, parentId: root.id });
+
+    if (ch.children && !collapsed.has(ch.id)) {
+      const kids = ch.children;
+      const totalHeight = (kids.length - 1) * L2_GAP_Y;
+      const startY = l1y - totalHeight / 2;
+
+      // 决定子节点方向：根据一级节点在中心的上方还是下方
+      const goRight = l1x < cx;
+
+      kids.forEach((k, j) => {
+        const l2x = goRight ? l1x + L2_GAP_X : l1x - L2_GAP_X;
+        const l2y = startY + j * L2_GAP_Y;
+        const id = k.id || (ch.id + '-' + j);
+        allNodes.push({ ...k, id, x: l2x, y: l2y, level: 2, parentId: ch.id });
+
+        if (k.children && !collapsed.has(id)) {
+          const grandkids = k.children;
+          const gkTotalH = (grandkids.length - 1) * L2_GAP_Y;
+          const gkStartY = l2y - gkTotalH / 2;
+          const gkGoRight = l2x < l1x ? l2x < cx : l2x > cx;
+
+          grandkids.forEach((gk, gi) => {
+            const l3x = gkGoRight ? l2x + 160 : l2x - 160;
+            const l3y = gkStartY + gi * L2_GAP_Y;
+            const gid = gk.id || (id + '-' + gi);
+            allNodes.push({ ...gk, id: gid, x: l3x, y: l3y, level: 3, parentId: id });
+          });
+        }
+      });
+    }
+  });
+
+  return allNodes;
+}
+
+function render() {
+  const allNodes = buildLayout(data);
+  nodes = allNodes;
+
+  // 清空画布
+  canvas.querySelectorAll('.node').forEach(el => el.remove());
+
+  // 画连线
+  let linesSvg = '';
+
+  // 中心到一级
+  data.children.forEach(ch => {
+    const p = findNode(allNodes, data.id);
+    const c = findNode(allNodes, ch.id);
+    if (p && c) linesSvg += drawCurve(p.x, p.y, c.x, c.y, '#555');
+  });
+
+  // 一级到二级
+  data.children.forEach(ch => {
+    if (collapsed.has(ch.id)) return;
+    const p = findNode(allNodes, ch.id);
+    if (!p) return;
+    (ch.children || []).forEach(k => {
+      const cid = k.id || (ch.id + '-' + (ch.children.indexOf(k)));
+      const c = findNode(allNodes, cid);
+      if (c) linesSvg += drawCurve(p.x, p.y, c.x, c.y, '#444');
+    });
+  });
+
+  // 二级到三级
+  data.children.forEach(ch => {
+    if (collapsed.has(ch.id)) return;
+    (ch.children || []).forEach(k => {
+      const cid = k.id || (ch.id + '-' + ch.children.indexOf(k));
+      if (collapsed.has(cid)) return;
+      const p = findNode(allNodes, cid);
+      if (!p) return;
+      (k.children || []).forEach((gk, gi) => {
+        const gid = gk.id || (cid + '-' + gi);
+        const c = findNode(allNodes, gid);
+        if (c) linesSvg += drawCurve(p.x, p.y, c.x, c.y, '#333');
+      });
+    });
+  });
+
+  svg.innerHTML = linesSvg;
+
+  // 画节点
+  allNodes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.id = 'n-' + n.id;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    el.style.transform = 'translate(-50%, -50%)';
+
+    let cls = '';
+    if (n.level === 0) cls = 'node-center';
+    else if (n.level === 1) cls = 'node-l1 ' + (n.cls || '');
+    else if (n.level === 2) cls = 'node-l2 ' + (n.cls || '') + (n.key ? ' key' : '');
+    else cls = 'node-l3 ' + (n.cls || '') + (n.formula ? ' formula' : '');
+
+    el.className += ' ' + cls;
+
+    // 一级节点显示折叠指示
+    if (n.level === 1 && n.children) {
+      el.textContent = (collapsed.has(n.id) ? '▶ ' : '▼ ') + n.label;
+    } else {
+      el.textContent = n.label;
+    }
+
+    // 点击折叠
+    if (n.level === 1 && n.children) {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle(n.id);
+      });
+    }
+
+    canvas.appendChild(el);
+  });
+}
+
+function findNode(allNodes, id) {
+  return allNodes.find(n => n.id === id);
+}
+
+function drawCurve(x1, y1, x2, y2, color) {
+  const midX = (x1 + x2) / 2;
+  return `<path d="M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}"
+    stroke="${color}" stroke-width="1.5" fill="none" opacity="0.5"/>`;
+}
+
+function toggle(id) {
+  if (collapsed.has(id)) collapsed.delete(id);
+  else collapsed.add(id);
+  render();
+}
+
+function expandAll() { collapsed.clear(); render(); }
+function collapseAll() {
+  data.children.forEach(ch => collapsed.add(ch.id));
+  render();
+}
+
+// ==================== 平移 + 缩放 ====================
+let isDragging = false, startX, startY;
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.node')) return;
+  isDragging = true; startX = e.clientX - offsetX; startY = e.clientY - offsetY;
+  canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  offsetX = e.clientX - startX;
+  offsetY = e.clientY - startY;
+  canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+  canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  scale = Math.max(0.3, Math.min(3, scale * delta));
+  canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}, { passive: false });
+
+function fitScreen() {
+  scale = 1; offsetX = 0; offsetY = 0;
+  canvas.style.transform = 'translate(0px, 0px) scale(1)';
+  render();
+}
+
+// ==================== 触摸支持 ====================
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isDragging = true; startX = e.touches[0].clientX - offsetX;
+    startY = e.touches[0].clientY - offsetY;
+  } else if (e.touches.length === 2) {
+    lastTouchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    offsetX = e.touches[0].clientX - startX;
+    offsetY = e.touches[0].clientY - startY;
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  } else if (e.touches.length === 2) {
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    scale = Math.max(0.3, Math.min(3, scale * (dist / lastTouchDist)));
+    lastTouchDist = dist;
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  }
+}, { passive: false });
+
+// ==================== 初始渲染 ====================
+render();
+fitScreen();
+
+// 窗口大小变化时重建布局
+window.addEventListener('resize', () => render());
+</script>
+</body>
+</html>
