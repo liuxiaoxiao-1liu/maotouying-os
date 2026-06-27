@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>操作系统期末考点 — 白话版</title>
+<style>
+  :root {
+    --red: #e74c3c; --orange: #e67e22; --blue: #2980b9; --green: #27ae60;
+    --purple: #8e44ad; --dark: #2c3e50; --bg: #f8f9fa; --card: #fff;
+    --border: #dee2e6; --shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 16px/1.8 "Noto Sans CJK SC","Microsoft YaHei",sans-serif; color: var(--dark); background: var(--bg); }
+
+  /* ===== 顶部 ===== */
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; padding: 50px 20px 40px; text-align: center;
+  }
+  .hero h1 { font-size: 2.2em; margin-bottom: 8px; }
+  .hero .sub { opacity: .75; font-size: 1.05em; }
+  .hero .badge { display: inline-block; margin-top: 14px; padding: 6px 18px;
+    background: var(--orange); border-radius: 20px; font-size: .9em; font-weight: bold; }
+
+  /* ===== 导航 ===== */
+  nav.toc {
+    max-width: 860px; margin: 30px auto; background: var(--card); border-radius: 12px;
+    padding: 24px 32px; box-shadow: var(--shadow);
+  }
+  nav.toc h2 { font-size: 1.2em; margin-bottom: 12px; color: var(--blue); }
+  nav.toc ol { columns: 2; padding-left: 20px; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--blue); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* ===== 主体 ===== */
+  .container { max-width: 860px; margin: 0 auto 60px; padding: 0 16px; }
+
+  section {
+    background: var(--card); border-radius: 12px; padding: 28px 32px;
+    margin: 24px 0; box-shadow: var(--shadow);
+  }
+  section h2 {
+    font-size: 1.5em; padding-bottom: 10px; margin-bottom: 18px;
+    border-bottom: 3px solid var(--blue);
+    display: flex; align-items: center; gap: 10px;
+  }
+  section h2 .num {
+    display: inline-flex; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--blue); color: #fff; font-size: .85em;
+    align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  /* ===== 卡片 ===== */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 14px 0; }
+  .card {
+    background: #f0f4ff; border-left: 4px solid var(--blue);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .card.red   { background: #fff0f0; border-color: var(--red); }
+  .card.green { background: #f0fff4; border-color: var(--green); }
+  .card.orange{ background: #fff8f0; border-color: var(--orange); }
+  .card.purple{ background: #faf0ff; border-color: var(--purple); }
+  .card strong { display: block; font-size: 1.05em; margin-bottom: 4px; }
+  .card .emoji { font-size: 1.3em; }
+
+  /* ===== 高亮 ===== */
+  .hl { background: #fff3cd; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+  .hl-r { background: #fdd; color: var(--red); padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+  .hl-g { background: #d4edda; color: var(--green); padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+  .hl-b { background: #d6eaf8; color: var(--blue); padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+
+  /* ===== 公式 ===== */
+  .formula {
+    display: inline-block; background: #fff9e6; border: 2px solid var(--orange);
+    border-radius: 8px; padding: 6px 16px; margin: 4px 0;
+    font-family: "JetBrains Mono","Consolas",monospace; font-size: .95em; font-weight: bold;
+  }
+
+  /* ===== 警告框 ===== */
+  .warn {
+    background: #fff5f5; border: 2px solid var(--red); border-radius: 10px;
+    padding: 14px 18px; margin: 16px 0; font-weight: bold;
+  }
+  .warn::before { content: "⚠️ "; }
+  .tip {
+    background: #f0fff4; border: 2px solid var(--green); border-radius: 10px;
+    padding: 14px 18px; margin: 16px 0;
+  }
+  .tip::before { content: "💡 "; font-size: 1.1em; }
+  .mnemonic {
+    background: #ede7f6; border: 2px dashed var(--purple); border-radius: 10px;
+    padding: 14px 18px; margin: 16px 0;
+  }
+  .mnemonic::before { content: "🧠 记忆口诀："; font-weight: bold; color: var(--purple); }
+
+  /* ===== 表格 ===== */
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0;
+    font-size: .92em;
+  }
+  th, td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; }
+  th { background: #e9ecef; font-weight: bold; }
+  tr:nth-child(even) { background: #f8f9fa; }
+
+  /* ===== 代码块 ===== */
+  pre {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 10px;
+    padding: 16px 20px; overflow-x: auto; font-size: .88em;
+    line-height: 1.5; margin: 12px 0;
+  }
+  code.keyword { color: #cba6f7; }
+  code.func { color: #89b4fa; }
+  code.comment { color: #6c7086; font-style: italic; }
+  code.str { color: #a6e3a1; }
+
+  /* ===== 流程 ===== */
+  .flow {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 8px; margin: 16px 0; font-size: .9em; font-weight: bold;
+  }
+  .flow span {
+    background: var(--blue); color: #fff; padding: 6px 14px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .flow .arr { background: transparent; color: var(--dark); padding: 6px 0; font-size: 1.2em; }
+
+  /* ===== 对比 ===== */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .compare > div { padding: 14px; border-radius: 8px; }
+  .compare .good { background: #f0fff4; border: 2px solid var(--green); }
+  .compare .bad  { background: #fff0f0; border: 2px solid var(--red); }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 600px) {
+    nav.toc ol { columns: 1; }
+    .compare { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.5em; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== 顶部 ====== -->
+<div class="hero">
+  <h1>🖥️ 操作系统期末考点</h1>
+  <p class="sub">白话版 · 看得懂 · 记得住 · 能做题</p>
+  <span class="badge">考试得分点 →</span>
+</div>
+
+<!-- ====== 目录 ====== -->
+<nav class="toc">
+  <h2>📑 章节导航</h2>
+  <ol>
+    <li><a href="#s1">操作系统概述</a></li>
+    <li><a href="#s2">进程管理</a></li>
+    <li><a href="#s3">CPU 调度</a></li>
+    <li><a href="#s4">PV 操作（大题）</a></li>
+    <li><a href="#s5">死锁</a></li>
+    <li><a href="#s6">内存管理</a></li>
+    <li><a href="#s7">页面置换</a></li>
+    <li><a href="#s8">磁盘调度</a></li>
+    <li><a href="#s9">文件系统</a></li>
+    <li><a href="#s10">I/O 管理</a></li>
+    <li><a href="#s11">启动过程</a></li>
+    <li><a href="#s12">速查清单</a></li>
+  </ol>
+</nav>
+
+<div class="container">
+
+<!-- ================================================================ -->
+<!-- 1. 操作系统概述 -->
+<!-- ================================================================ -->
+<section id="s1">
+<h2><span class="num">1</span> 操作系统概述</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <strong>🔄 并发</strong>多程序"同时"跑。宏观同时，微观交替。单核轮流执行
+  </div>
+  <div class="card orange">
+    <strong>🤝 共享</strong>多进程共用系统资源。互斥共享（打印机）或同时共享（读文件）
+  </div>
+  <div class="card green">
+    <strong>🎭 虚拟</strong>一个物理实体映射为多个逻辑物。虚拟内存让每进程以为独占全部内存
+  </div>
+  <div class="card purple">
+    <strong>⚡ 异步</strong>进程走走停停，推进速度不可预知
+  </div>
+</div>
+
+<div class="mnemonic">
+  并·共·虚·异 — "病假工虚，一同进医院" （并发·共享·虚拟·异步）
+</div>
+
+<div class="warn">
+  并发 ≠ 并行！并发是逻辑上的"同时"（单核交替），并行是物理上的同时（多核真正一起跑）。
+</div>
+
+<table>
+  <tr><th>发展阶段</th><th>特点</th></tr>
+  <tr><td>手工操作</td><td>人直接操作面板，纸带打孔</td></tr>
+  <tr><td>单道批处理</td><td>攒一批任务一起跑，不能交互</td></tr>
+  <tr><td>多道批处理</td><td>内存同时放多道程序，CPU 和 I/O 可并行</td></tr>
+  <tr><td>分时系统</td><td>多人共用一台主机，每人轮流用时间片，你感觉独占</td></tr>
+  <tr><td>实时系统</td><td>必须在规定时间内响应（导弹、工控）</td></tr>
+</table>
+
+<p><span class="hl-b">系统调用</span> 是 <span class="hl-r">用户态→内核态的唯一途径</span>。用户程序通过 <code>int 0x80</code>（x86）或 <code>syscall</code>（x64）指令陷入内核。</p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 2. 进程管理 -->
+<!-- ================================================================ -->
+<section id="s2">
+<h2><span class="num">2</span> 进程管理</h2>
+
+<h3>🔷 进程 vs 线程</h3>
+<div class="compare">
+  <div class="good">
+    <strong>进程 = 工厂</strong><br>
+    • 拥有独立资源<br>
+    • 切换代价大<br>
+    • 通信靠 IPC（管道、消息队列）
+  </div>
+  <div class="bad">
+    <strong>线程 = 工人</strong><br>
+    • 共享进程的资源<br>
+    • 切换轻量<br>
+    • 直接读写共享变量
+  </div>
+</div>
+
+<h3>🔷 进程状态切换</h3>
+<div class="flow">
+  <span>创建</span><span class="arr">→</span>
+  <span>就绪</span><span class="arr">→</span>
+  <span>运行</span><span class="arr">→</span>
+  <span>终止</span>
+</div>
+<div style="text-align:center;margin:10px 0">
+  <span class="hl">就绪→运行</span>：被调度选中 |
+  <span class="hl">运行→就绪</span>：时间片用完 |
+  <span class="hl">运行→阻塞</span>：等 I/O、等锁 |
+  <span class="hl">阻塞→就绪</span>：I/O 完成
+</div>
+
+<div class="mnemonic">
+  三态循环：就跑等 — "就跑着等"（就绪→运行→阻塞→就绪循环）
+</div>
+
+<h3>🔷 临界区与锁</h3>
+<p>访问共享资源的代码段 = <span class="hl-r">临界区</span>。必须保证同一时刻只有一个进程在里面。</p>
+<p>访问准则：<span class="hl-g">空闲让进</span> · <span class="hl">忙则等待</span> · <span class="hl-b">有限等待</span> · <span class="hl-r">让权等待</span></p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 3. CPU 调度 -->
+<!-- ================================================================ -->
+<section id="s3">
+<h2><span class="num">3</span> CPU 调度算法</h2>
+
+<div class="tip">核心问题：CPU 只有一个，几十个进程等着。让谁先跑？跑多久？</div>
+
+<table>
+  <tr><th>算法</th><th>一句话</th><th>抢占？</th></tr>
+  <tr><td><span class="hl">FCFS</span></td><td>谁先到谁先跑。简单但长进程堵死短进程</td><td>否</td></tr>
+  <tr><td><span class="hl">SJF</span></td><td>最短的先跑。平均等待最少，但长进程可能<strong>饿死</strong></td><td>均可</td></tr>
+  <tr><td><span class="hl-g">HRRN ★</span></td><td>响应比 = (等待+服务)÷服务。综合公平</td><td>否</td></tr>
+  <tr><td><span class="hl">RR</span></td><td>每人跑一个时间片 q，轮流切换</td><td>是</td></tr>
+  <tr><td><span class="hl-r">多级反馈队列 ★★</span></td><td>多级队列，高优先时间片短，没跑完降级</td><td>是</td></tr>
+</table>
+
+<div class="formula">响应比 = (等待时间 + 服务时间) ÷ 服务时间</div>
+<p style="margin-top:6px">等待越久、需求越少 → 响应比越高 → 越优先。兼顾长短作业。</p>
+
+<div class="formula">周转时间 = 完成时间 − 到达时间</div>
+<div class="formula">带权周转时间 = 周转时间 ÷ 服务时间</div>
+
+<div class="warn">考试套路：给进程表 → 画<strong>甘特图</strong>（时间轴） → 算每个的周转时间 → 求平均</div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 4. PV 操作 -->
+<!-- ================================================================ -->
+<section id="s4">
+<h2><span class="num">4</span> PV 操作 — 大题必考 ⭐⭐⭐</h2>
+
+<h3>🔷 信号量 = 计数器 + 排队队列</h3>
+<div class="card-grid">
+  <div class="card green">
+    <strong>P 操作</strong>S = S−1；如果 S&lt;0，排队等着<br><em>申请资源，可能会阻塞</em>
+  </div>
+  <div class="card orange">
+    <strong>V 操作</strong>S = S+1；如果 S≤0，叫醒队里一个人<br><em>释放资源，不会阻塞</em>
+  </div>
+</div>
+<p style="text-align:center;margin:10px 0">🅿️ = <strong>请</strong>求（<strong>P</strong>lease） | ✅ = <strong>释</strong>放（<strong>V</strong>acate）</p>
+
+<h3>🔷 生产者-消费者 ★★</h3>
+<pre>
+<span class="comment">// 货架有 N 个空位，初值 empty=N, full=0, mutex=1</span>
+
+<span class="keyword">生产者：</span>
+  P(empty);    <span class="comment">// ① 先看有没有空位</span>
+  P(mutex);    <span class="comment">// ② 占货架</span>
+  放面包;
+  V(mutex);    <span class="comment">// ③ 放好，走人</span>
+  V(full);     <span class="comment">// ④ 面包+1，有顾客等就叫醒</span>
+
+<span class="keyword">消费者：</span>
+  P(full);     <span class="comment">// ① 先看有没有面包</span>
+  P(mutex);    <span class="comment">// ② 占货架</span>
+  取面包;
+  V(mutex);    <span class="comment">// ③ 取好，走人</span>
+  V(empty);    <span class="comment">// ④ 空位+1，有面包师等就叫醒</span>
+</pre>
+
+<div class="warn">
+  P(资源) 必须在 P(mutex) 前面！先拿锁再等资源 → 你拿着锁睡觉，别人想释放资源但拿不到锁 → <strong>死锁</strong>
+</div>
+
+<h3>🔷 读者-写者 ★★</h3>
+<pre>
+<span class="comment">// rw=1（公告栏锁）, mutex=1（保护读者计数）, readcount=0</span>
+
+<span class="keyword">读者：</span>
+  P(mutex);
+  readcount++;  <span class="keyword">if</span>(readcount==1) P(rw);   <span class="comment">// 第一个读者锁住写者</span>
+  V(mutex);
+  <span class="comment">// 读公告...</span>
+  P(mutex);
+  readcount--;  <span class="keyword">if</span>(readcount==0) V(rw);   <span class="comment">// 最后一个读者释放</span>
+  V(mutex);
+
+<span class="keyword">写者：</span>
+  P(rw);              <span class="comment">// 等所有人（读者和写者）走</span>
+  <span class="comment">// 写公告...</span>
+  V(rw);
+</pre>
+<div class="mnemonic">一读锁，末读放。写者独占等全部。</div>
+
+<h3>🔷 哲学家就餐 ★</h3>
+<p>五个人围圆桌，五根筷子。每人需要左右两根才能吃。</p>
+<div class="warn">每人先拿左边再等右边 → 全死锁</div>
+<p><span class="hl-g">解法</span>：最多允许 4 人同时拿筷子（信号量限制），或奇数号先左后右、偶数号先右后左。</p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 5. 死锁 -->
+<!-- ================================================================ -->
+<section id="s5">
+<h2><span class="num">5</span> 死锁</h2>
+
+<h3>🔷 四个必要条件（简答必背！）</h3>
+<div class="card-grid">
+  <div class="card red">
+    <strong>① 互斥</strong>资源一次只能给一个人用（厕所一次进一人）
+  </div>
+  <div class="card orange">
+    <strong>② 请求并保持</strong>拿着已有的，还要申请新的（占厕所等洗衣机）
+  </div>
+  <div class="card purple">
+    <strong>③ 不可抢占</strong>不能硬抢别人的资源（不能把人从厕所踹出来）
+  </div>
+  <div class="card">
+    <strong>④ 循环等待</strong>A 等 B、B 等 C、C 等 A，形成环
+  </div>
+</div>
+
+<div class="mnemonic">
+  互·请·不·循 — "护·请·不·巡" （互斥、请求保持、不可抢、循环等）
+</div>
+
+<div class="tip">
+  <strong>破坏任一条件就能防死锁。</strong>比如：允许抢占（破③）、信号量做限制不让所有人都申请（破④）。
+</div>
+
+<h3>🔷 银行家算法</h3>
+<p>每次分配资源前先判断：分完之后系统还在"安全状态"吗？能找到全部分配顺序 = 安全，找不到 = 拒绝分配。</p>
+<div class="warn">考题：给表（进程/已分配/还需/可用），判断当前状态是否安全，某进程的请求能否满足。</div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 6. 内存管理 -->
+<!-- ================================================================ -->
+<section id="s6">
+<h2><span class="num">6</span> 内存管理</h2>
+
+<h3>🔷 虚拟内存</h3>
+<p>每个进程<span class="hl-r">"以为"自己独占全部内存</span>。真实物理内存 + 硬盘交换区 = 虚拟地址空间。OS 偷偷把虚拟地址翻译成物理地址。</p>
+
+<h3>🔷 分页 = 把内存切成固定大小的块</h3>
+<ul>
+  <li>虚拟地址侧叫 <span class="hl">页（page）</span></li>
+  <li>物理地址侧叫 <span class="hl">块/页框（frame）</span></li>
+  <li>大小通常 <strong>4KB</strong>（= 4096 = 2^12）</li>
+</ul>
+
+<h3>🔷 页表 = 翻译字典：页号 → 块号</h3>
+<div class="formula">虚拟地址 = [ 页号 | 页内偏移（低 12 位）]</div>
+<p style="text-align:center;margin:8px 0">↓ 查页表</p>
+<div class="formula">物理地址 = [ 块号 | 页内偏移（直接复制）]</div>
+
+<div class="tip">
+  <strong>例</strong>：页大小 4KB，虚地址 0x5A38<br>
+  高 4 位 = 5（页号），低 12 位 = A38（偏移不翻译）<br>
+  页表：页 5 → 块 7<br>
+  → 物理地址 = <strong>0x7A38</strong>
+</div>
+
+<p><span class="hl-b">TLB（快表）</span>：CPU 里的小缓存，存最近用过的几个页表项。命中率 90%+，省去查内存中页表的时间。<br>
+<span class="hl">多级页表</span>：页表本身也很大，把页表也分页，只把用到的部分放内存。</p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 7. 页面置换 -->
+<!-- ================================================================ -->
+<section id="s7">
+<h2><span class="num">7</span> 页面置换</h2>
+
+<div class="tip">核心问题：物理内存满了，要把一页换出去。换谁？</div>
+
+<table>
+  <tr><th>算法</th><th>赶走谁</th><th>特点</th></tr>
+  <tr><td><span class="hl">OPT</span></td><td>将来最久才用到的</td><td>🏆 最优但做不到（不知道未来），只当基准</td></tr>
+  <tr><td><span class="hl">FIFO</span></td><td>最先进来的</td><td>简单但有 <span class="hl-r">Belady 异常</span>（页越多反而缺页越多！）</td></tr>
+  <tr><td><span class="hl-g">LRU ★</span></td><td>过去最久没被用过的</td><td>效果好，"用进废退"，实现代价大</td></tr>
+  <tr><td><span class="hl-b">CLOCK ★</span></td><td>扫一圈，把没被访问过的赶走</td><td>近似 LRU，实现简单，实际系统用</td></tr>
+  <tr><td>改进 CLOCK</td><td>A=0,M=0 → A=0,M=1 → A=1,M=0 → A=1,M=1</td><td>优先赶走未修改的（省去写回磁盘）</td></tr>
+</table>
+
+<div class="mnemonic">
+  FIFO 最简单但有怪病（Belady）。LRU 合理但费钱。CLOCK 折中最好用。
+</div>
+
+<div class="warn">考题：给引用串 + N 个框 → 一步步画 → 标缺页 → 数缺页次数和缺页率</div>
+
+<p><span class="hl-r">缺页中断</span>：要访问的页不在内存（在硬盘），OS 从磁盘调入。<br>
+<span class="hl-r">抖动（Thrashing）</span>：分给进程的页太少，频繁缺页，时间全花在换页上。你桌面只剩巴掌大，写一行代码就要起身去书架 → 一上午啥也没干。</p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 8. 磁盘调度 -->
+<!-- ================================================================ -->
+<section id="s8">
+<h2><span class="num">8</span> 磁盘调度</h2>
+
+<div class="tip">磁头要在盘面上来回移动。按什么顺序处理请求 → 总移动距离最短？</div>
+
+<table>
+  <tr><th>算法</th><th>一句话</th></tr>
+  <tr><td><span class="hl">FCFS</span></td><td>按请求顺序来。公平但移动多</td></tr>
+  <tr><td><span class="hl">SSTF</span></td><td>离当前磁头最近先去。快但远处可能饿死</td></tr>
+  <tr><td><span class="hl-g">SCAN ★</span></td><td>电梯算法：一个方向走到底，路上有请求就处理，到底折返</td></tr>
+  <tr><td><span class="hl-b">C-SCAN ★</span></td><td>循环扫描：只在一个方向处理，到底直接跳回起点（不处理）</td></tr>
+</table>
+
+<div class="mnemonic"><strong>电梯去程（←）接待，回程（→）不干活 = LOOK。</strong>实际系统最常用。</div>
+<div class="warn">考题：给磁头位置 + 请求序列 → 画移动轨迹 &rarr; 算总寻道长度</div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 9. 文件系统 -->
+<!-- ================================================================ -->
+<section id="s9">
+<h2><span class="num">9</span> 文件系统</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <strong>📋 inode</strong>文件的"身份证"。存大小、位置、权限。<span class="hl-r">不存文件名！</span>
+  </div>
+  <div class="card green">
+    <strong>📁 目录</strong>本质是一张表：<code>文件名 → inode 号</code>
+  </div>
+  <div class="card orange">
+    <strong>📦 超级块</strong>整个文件系统的元信息（总大小、空闲块数）
+  </div>
+  <div class="card purple">
+    <strong>🧱 块</strong>最小读写单位（通常 4KB）
+  </div>
+</div>
+
+<h3>🔷 路径解析：/home/xiao/file.txt 怎么找？</h3>
+<div class="flow">
+  <span>查 / 的 inode</span><span class="arr">→</span>
+  <span>找到 home 的 inode</span><span class="arr">→</span>
+  <span>找到 xiao 的 inode</span><span class="arr">→</span>
+  <span>找到 file.txt 的 inode</span><span class="arr">→</span>
+  <span>读取文件</span>
+</div>
+
+<h3>🔷 硬链接 vs 软链接</h3>
+<table>
+  <tr><th></th><th>硬链接</th><th>软链接（符号链接）</th></tr>
+  <tr><td>本质</td><td>多个文件名 → 同一个 inode</td><td>一个文件存目标路径字符串</td></tr>
+  <tr><td>删原文件</td><td>✅ 不影响，其他硬链接还能访问</td><td>❌ 失效（悬空）</td></tr>
+  <tr><td>跨文件系统</td><td>❌ 不能</td><td>✅ 可以</td></tr>
+</table>
+<div class="mnemonic">硬链接是复印文件身份证，软链接是留便条"他在某某地方"。</div>
+
+<h3>🔷 文件分配方式</h3>
+<table>
+  <tr><th>方式</th><th>原理</th><th>问题</th></tr>
+  <tr><td>连续分配</td><td>文件占连续磁盘块</td><td>外部碎片</td></tr>
+  <tr><td>链接分配</td><td>每块存下一块的指针</td><td>随机访问慢</td></tr>
+  <tr><td><span class="hl-g">索引分配 ★</span></td><td>用一个索引块集中存所有数据块地址</td><td>Unix/Linux 用这个</td></tr>
+</table>
+</section>
+
+<!-- ================================================================ -->
+<!-- 10. I/O 管理 -->
+<!-- ================================================================ -->
+<section id="s10">
+<h2><span class="num">10</span> I/O 管理</h2>
+
+<h3>🔷 控制方式演进（越来越省 CPU）</h3>
+<div class="flow">
+  <span>程序轮询</span><span class="arr">→</span>
+  <span>中断驱动</span><span class="arr">→</span>
+  <span>DMA</span><span class="arr">→</span>
+  <span>通道</span>
+</div>
+
+<table>
+  <tr><th>方式</th><th>CPU 干什么</th></tr>
+  <tr><td>轮询</td><td>CPU 不停检查"好了没？好了没？" — 全浪费</td></tr>
+  <tr><td>中断</td><td>CPU 布置任务后干别的，外设好了发中断通知</td></tr>
+  <tr><td><span class="hl-g">DMA ★</span></td><td>CPU 只下命令，DMA 控制器自己搬数据，搬完通知 CPU</td></tr>
+  <tr><td>通道</td><td>更高级的 DMA，有自己的指令集</td></tr>
+</table>
+
+<h3>🔷 缓冲</h3>
+<p>CPU 太快，I/O 太慢 → 缓冲当<span class="hl">中转站</span>平滑速度差。<br>
+单缓冲 → 双缓冲（交替用，并行度↑）→ 环形缓冲（生产者消费者模型）</p>
+
+<h3>🔷 SPOOLing（假脱机）</h3>
+<p>多用户"同时"用打印机 → 实际 OS 先把任务存磁盘，再逐个发给打印机。<span class="hl">用户以为自己独占打印机。</span></p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 11. 启动过程 -->
+<!-- ================================================================ -->
+<section id="s11">
+<h2><span class="num">11</span> 启动过程</h2>
+
+<div class="flow">
+  <span>电源🔌</span><span class="arr">→</span>
+  <span>BIOS/UEFI</span><span class="arr">→</span>
+  <span>GRUB 菜单</span><span class="arr">→</span>
+  <span>加载内核 vmlinuz</span><span class="arr">→</span>
+  <span>initramfs</span><span class="arr">→</span>
+  <span>systemd (PID=1)</span><span class="arr">→</span>
+  <span>启动服务</span><span class="arr">→</span>
+  <span>登录🖥️</span>
+</div>
+
+<p style="margin-top:10px">你 U 盘启动选 <strong>"猫头鹰 OS Live"</strong> 就是在 GRUB 这一步选择了不同的启动项。</p>
+</section>
+
+<!-- ================================================================ -->
+<!-- 12. 速查清单 -->
+<!-- ================================================================ -->
+<section id="s12" style="border: 3px solid var(--red);">
+<h2><span class="num">12</span> 考试速查清单 🎯</h2>
+
+<h3>📝 简答题</h3>
+<table>
+  <tr><th>必背</th><th>关键词</th></tr>
+  <tr><td>四大特征</td><td>并发·共享·虚拟·异步</td></tr>
+  <tr><td>死锁四条件</td><td>互斥·请求保持·不可抢·循环等</td></tr>
+  <tr><td>临界区准则</td><td>空闲让进·忙则等待·有限等·让权等</td></tr>
+  <tr><td>并发≠并行</td><td>逻辑 vs 物理</td></tr>
+</table>
+
+<h3>🧮 计算题</h3>
+<table>
+  <tr><th>题型</th><th>关键步骤</th></tr>
+  <tr><td>CPU 调度</td><td>画甘特图 → 周转时间 = 完成−到达</td></tr>
+  <tr><td>页面置换</td><td>一步步填内存框 → 标缺页 → 数次数</td></tr>
+  <tr><td>磁盘调度</td><td>画磁头轨迹 → 算总移动距离</td></tr>
+  <tr><td>地址转换</td><td>页号=虚地址÷页大小 → 查页表 → 换块号</td></tr>
+</table>
+
+<h3>💻 PV 大题</h3>
+<table>
+  <tr><th>题型</th><th>致命错误</th></tr>
+  <tr><td>生产-消费</td><td><span class="hl-r">P(empty) 必须在 P(mutex) 前面！</span></td></tr>
+  <tr><td>读者-写者</td><td>第一个读者锁，最后一个放。写者 P(rw) 等全部。</td></tr>
+  <tr><td>哲学家</td><td>限制最多 4 人同时拿 / 奇偶不同顺序</td></tr>
+</table>
+
+<div class="formula" style="display:block;text-align:center;margin:16px 0;padding:12px">
+  周转 = 完成 − 到达 &emsp;|&emsp;
+  带权 = 周转 ÷ 服务 &emsp;|&emsp;
+  响应比 = (等待+服务) ÷ 服务 &emsp;|&emsp;
+  缺页率 = 缺页次数 ÷ 总访问次数 &emsp;|&emsp;
+  物理地址 = 块号 × 页大小 + 偏移
+</div>
+</section>
+
+</div>
+
+<p style="text-align:center;padding:30px;color:#888;font-size:.85em">
+  猫头鹰 OS 项目 · 2024 · <a href="https://github.com/liuxiaoxiao-1liu/maotouying-os" style="color:inherit">GitHub</a>
+</p>
+
+</body>
+</html>
